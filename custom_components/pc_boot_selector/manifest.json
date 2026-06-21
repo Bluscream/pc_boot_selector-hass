@@ -1,0 +1,9 @@
+{
+  "domain": "pc_boot_selector",
+  "name": "PC Boot Selector",
+  "codeowners": ["@bluscream"],
+  "documentation": "https://github.com/bluscream",
+  "iot_class": "local_polling",
+  "version": "1.0.0",
+  "config_flow": true
+}

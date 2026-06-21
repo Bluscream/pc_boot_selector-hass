@@ -1,0 +1,70 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure PC Boot Selector",
+        "description": "Set up a new PC to manage its boot selection files.",
+        "data": {
+          "name": "PC Name",
+          "boot_dir": "Output Directory (e.g. /config/www/boot/pc/)",
+          "timeout": "Boot Timeout (seconds)"
+        }
+      },
+      "os_entry": {
+        "title": "Add Boot Entry",
+        "description": "Add an operating system option for this PC.\n\n**How to retrieve this info:**\n* **GRUB Entry ID**: Run this command on the client PC to list entry IDs:\n  `grep -E \"submenu|menuentry\" /boot/grub/grub.cfg` (look for the string after `$menuentry_id_option`)\n* **Partition UUIDs/GUIDs (Limine)**: Run `blkid` or `lsblk -o NAME,UUID,PARTUUID` to find the filesystem UUIDs.\n\n**Limine Entry Config Example (Windows):**\n```ini\nprotocol: efi_chainload\nimage_path: guid(2E39665E-E798-4C29-A9EF-A28E3F248290):/efi/Microsoft/Boot/bootmgfw.efi\n```\n\n**Limine Entry Config Example (Linux):**\n```ini\nprotocol: linux\npath: boot():/2adf31daa51541fcb0ceb8476625a2b1/linux-cachyos/vmlinuz-linux-cachyos\nmodule_path: boot():/2adf31daa51541fcb0ceb8476625a2b1/linux-cachyos/initramfs-linux-cachyos\ncmdline: quiet nowatchdog splash rw rootflags=subvol=/@ root=UUID=a7b6cf2d-4171-4fcb-9d29-83c7eafd4703\n```",
+        "data": {
+          "os_name": "Operating System Name (e.g. Windows)",
+          "grub_id": "GRUB Entry ID / Name",
+          "limine_config": "Limine Entry Config Block",
+          "add_another": "Add another boot entry?"
+        }
+      },
+      "instructions": {
+        "title": "Client Setup Instructions",
+        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to your startup/shutdown or a cronjob to fetch the Limine configuration from Home Assistant:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. GRUB Setup\n\n**Option A: Load directly over network (Recommended)**\nIf your GRUB has network support enabled, add this to `/boot/grub/custom.cfg` or `/etc/grub.d/40_custom`:\n```grub\ninsmod http\ninsmod efinet\nif [ -d {grub_http_url} ]; then\n    source {grub_http_url}\nfi\n```\n\n**Option B: Download configuration file**\nAlternatively, configure a startup script or service to fetch the configuration:\n```bash\nwget -O /boot/grub/remote_grub.cfg {grub_url}\n```\nAnd make sure `/boot/grub/grub.cfg` includes `/boot/grub/remote_grub.cfg`."
+      }
+    },
+    "error": {
+      "invalid_dir": "Cannot write to the specified output directory. Please make sure the path is correct.",
+      "empty_os_list": "You must add at least one boot entry before finishing."
+    },
+    "abort": {
+      "already_configured": "A PC with this name is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure PC Settings",
+        "description": "Update the basic configuration for this PC.",
+        "data": {
+          "name": "PC Name",
+          "boot_dir": "Output Directory (e.g. /config/www/boot/pc/)",
+          "timeout": "Boot Timeout (seconds)"
+        }
+      },
+      "manage_entries": {
+        "title": "Manage Boot Entries",
+        "description": "Select a boot entry to edit/delete, add a new one, or choose Done to save changes.",
+        "data": {
+          "selection": "Select Action / Entry"
+        }
+      },
+      "os_entry": {
+        "title": "Add / Edit Boot Entry",
+        "description": "Configure the boot entry. Check the delete checkbox below if you wish to remove it.\n\n**Limine Entry Config Example (Windows):**\n```ini\nprotocol: efi_chainload\nimage_path: guid(2E39665E-E798-4C29-A9EF-A28E3F248290):/efi/Microsoft/Boot/bootmgfw.efi\n```",
+        "data": {
+          "os_name": "Operating System Name",
+          "grub_id": "GRUB Entry ID / Name",
+          "limine_config": "Limine Entry Config Block",
+          "delete_entry": "Delete this entry"
+        }
+      },
+      "instructions": {
+        "title": "Client Setup Instructions",
+        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to your startup/shutdown or a cronjob to fetch the Limine configuration from Home Assistant:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. GRUB Setup\n\n**Option A: Load directly over network (Recommended)**\nIf your GRUB has network support enabled, add this to `/boot/grub/custom.cfg` or `/etc/grub.d/40_custom`:\n```grub\ninsmod http\ninsmod efinet\nif [ -d {grub_http_url} ]; then\n    source {grub_http_url}\nfi\n```\n\n**Option B: Download configuration file**\nAlternatively, configure a startup script or service to fetch the configuration:\n```bash\nwget -O /boot/grub/remote_grub.cfg {grub_url}\n```\nAnd make sure `/boot/grub/grub.cfg` includes `/boot/grub/remote_grub.cfg`."
+      }
+    }
+  }
+}
