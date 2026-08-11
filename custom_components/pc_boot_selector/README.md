@@ -83,18 +83,22 @@ On the client PC, run `/usr/local/bin/update_boot_selector.sh` to fetch configur
 
 ### Script Command Options:
 ```bash
-# Default (no args): Fetch and update GRUB & Limine configs only
+# Default (no args): One-time boot mode for GRUB (grub2-reboot) & Limine
 /usr/local/bin/update_boot_selector.sh
 
-# Update BIOS/UEFI NVRAM (sets one-time BootNext)
+# Persistent boot mode: Updates persistent default across GRUB (grub2-set-default) & Limine
+/usr/local/bin/update_boot_selector.sh --always
+
+# Enable BIOS/UEFI NVRAM updates (sets one-time BootNext)
 /usr/local/bin/update_boot_selector.sh --bios
 
-# Update BIOS/UEFI NVRAM and make persistent BootOrder changes
+# Enable BIOS/UEFI NVRAM persistent updates (updates BootNext & BootOrder)
 /usr/local/bin/update_boot_selector.sh --bios --always
 
 # Extract copy/paste field values for Home Assistant setup
 /usr/local/bin/update_boot_selector.sh --info
 ```
+
 
 curl -s -f -o /boot/limine.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/limine.conf"
 curl -s -f -o /boot/grub2/remote_grub.cfg "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/grub.cfg"
