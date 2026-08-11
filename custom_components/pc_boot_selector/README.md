@@ -79,15 +79,23 @@ To easily retrieve the **EFI Boot Numbers**, **GRUB IDs**, and **Limine Blocks**
 
 ## 🖥️ Client PC Setup
 
-On the client PC, configure a startup/shutdown service or script (`/usr/local/bin/update_boot_selector.sh`) to fetch configurations from Home Assistant:
+On the client PC, run `/usr/local/bin/update_boot_selector.sh` to fetch configurations from Home Assistant.
 
+### Script Command Options:
 ```bash
-#!/bin/bash
-HA_IP="192.168.2.4"
-HA_PORT="8123"
-PC_SLUG="gaming-pc"
+# Default (no args): Fetch and update GRUB & Limine configs only
+/usr/local/bin/update_boot_selector.sh
 
-# Fetch configurations
+# Update BIOS/UEFI NVRAM (sets one-time BootNext)
+/usr/local/bin/update_boot_selector.sh --bios
+
+# Update BIOS/UEFI NVRAM and make persistent BootOrder changes
+/usr/local/bin/update_boot_selector.sh --bios --always
+
+# Extract copy/paste field values for Home Assistant setup
+/usr/local/bin/update_boot_selector.sh --info
+```
+
 curl -s -f -o /boot/limine.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/limine.conf"
 curl -s -f -o /boot/grub2/remote_grub.cfg "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/grub.cfg"
 curl -s -f -o /boot/bios.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/bios.conf"
