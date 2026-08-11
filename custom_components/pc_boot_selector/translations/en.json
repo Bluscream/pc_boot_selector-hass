@@ -12,7 +12,7 @@
       },
       "os_entry": {
         "title": "Add Boot Entry",
-        "description": "Add an operating system option for this PC.\n\n**How to retrieve this info:**\n* **GRUB Entry ID**: Run this command on the client PC to list entry IDs:\n  `grep -E \"submenu|menuentry\" /boot/grub/grub.cfg` (look for the string after `$menuentry_id_option`)\n* **Partition UUIDs/GUIDs (Limine)**: Run `blkid` or `lsblk -o NAME,UUID,PARTUUID` to find the filesystem UUIDs.\n\n**Limine Entry Config Example (Windows):**\n```ini\nprotocol: efi_chainload\nimage_path: guid(2E39665E-E798-4C29-A9EF-A28E3F248290):/efi/Microsoft/Boot/bootmgfw.efi\n```\n\n**Limine Entry Config Example (Linux):**\n```ini\nprotocol: linux\npath: boot():/2adf31daa51541fcb0ceb8476625a2b1/linux-cachyos/vmlinuz-linux-cachyos\nmodule_path: boot():/2adf31daa51541fcb0ceb8476625a2b1/linux-cachyos/initramfs-linux-cachyos\ncmdline: quiet nowatchdog splash rw rootflags=subvol=/@ root=UUID=a7b6cf2d-4171-4fcb-9d29-83c7eafd4703\n```",
+        "description": "Add an operating system option for this PC.\n\n**How to retrieve this info:**\n* **GRUB Entry ID**: Run `grep -E \"submenu|menuentry\" /boot/grub/grub.cfg` on client PC.\n* **EFI Boot Number (BIOS)**: Run `efibootmgr` on client PC (e.g. `0002` for Boot0002).\n* **Limine Config Block**: Run `blkid` for UUIDs.\n\n**Limine Entry Config Example (Windows):**\n```ini\nprotocol: efi_chainload\nimage_path: guid(2E39665E-E798-4C29-A9EF-A28E3F248290):/efi/Microsoft/Boot/bootmgfw.efi\n```",
         "data": {
           "os_name": "Operating System Name (e.g. Windows)",
           "grub_id": "GRUB Entry ID / Name",
@@ -23,7 +23,7 @@
       },
       "instructions": {
         "title": "Client Setup Instructions",
-        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to your startup/shutdown or a cronjob to fetch the Limine configuration from Home Assistant:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. BIOS / UEFI Setup\nFetch `{bios_url}` and execute `efibootmgr -n \"$BOOT_NEXT\"` or `efibootmgr -o \"$BOOT_ORDER\"`.\n\n#### 3. GRUB Setup\n\n**Option A: Load directly over network (Recommended)**\nIf your GRUB has network support enabled, add this to `/boot/grub/custom.cfg` or `/etc/grub.d/40_custom`:\n```grub\ninsmod efinet\ninsmod http\nnet_dhcp\nif [ -s {grub_http_url} ]; then\n    source {grub_http_url}\nfi\n```\n\n**Option B: Download configuration file**\nAlternatively, configure a startup script or service to fetch the configuration:\n```bash\nwget -O /boot/grub/remote_grub.cfg {grub_url}\n```\nAnd make sure `/boot/grub/grub.cfg` includes `/boot/grub/remote_grub.cfg`."
+        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to fetch the Limine configuration:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. BIOS / UEFI Setup\nFetch `{bios_url}` and execute `efibootmgr -n \"$BOOT_NEXT\"` or `efibootmgr -o \"$BOOT_ORDER\"`.\n\n#### 3. GRUB Setup\nSource `{grub_http_url}` or download `{grub_url}`."
       }
     },
     "error": {
@@ -65,9 +65,8 @@
       },
       "instructions": {
         "title": "Client Setup Instructions",
-        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to your startup/shutdown or a cronjob to fetch the Limine configuration from Home Assistant:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. BIOS / UEFI Setup\nFetch `{bios_url}` and execute `efibootmgr -n \"$BOOT_NEXT\"` or `efibootmgr -o \"$BOOT_ORDER\"`.\n\n#### 3. GRUB Setup\n\n**Option A: Load directly over network (Recommended)**\nIf your GRUB has network support enabled, add this to `/boot/grub/custom.cfg` or `/etc/grub.d/40_custom`:\n```grub\ninsmod efinet\ninsmod http\nnet_dhcp\nif [ -s {grub_http_url} ]; then\n    source {grub_http_url}\nfi\n```\n\n**Option B: Download configuration file**\nAlternatively, configure a startup script or service to fetch the configuration:\n```bash\nwget -O /boot/grub/remote_grub.cfg {grub_url}\n```\nAnd make sure `/boot/grub/grub.cfg` includes `/boot/grub/remote_grub.cfg`."
+        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to fetch the Limine configuration:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. BIOS / UEFI Setup\nFetch `{bios_url}` and execute `efibootmgr -n \"$BOOT_NEXT\"` or `efibootmgr -o \"$BOOT_ORDER\"`.\n\n#### 3. GRUB Setup\nSource `{grub_http_url}` or download `{grub_url}`."
       }
     }
   }
 }
-
