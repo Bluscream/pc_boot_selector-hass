@@ -17,7 +17,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the select platform from a config entry."""
     manager: PCBootManager = hass.data[DOMAIN][entry.entry_id]["manager"]
-    async_add_entities([PCBootSelectorSelect(entry, manager)], True)
+    async_add_entities([
+        PCBootSelectorSelect(entry, manager),
+        PCBootModeSelect(entry, manager),
+    ], True)
 
 
 class PCBootSelectorSelect(SelectEntity):
@@ -52,6 +55,43 @@ class PCBootSelectorSelect(SelectEntity):
         
         # Write updated files in executor
         await self.hass.async_add_executor_job(
-            self._manager.write_config, option, self._manager.current_timeout
+            self._manager.write_config, option, self._manager.current_timeout, self._manager.current_boot_mode
         )
         self.async_write_ha_state()
+
+
+class PCBootModeSelect(SelectEntity):
+    """Representation of BIOS Boot Mode select entity (One-Time vs Persistent)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "BIOS Boot Mode"
+    _attr_icon = "mdi:tune-vertical"
+
+    def __init__(self, entry: ConfigEntry, manager: PCBootManager) -> None:
+        """Initialize the boot mode select entity."""
+        self._manager = manager
+        self._attr_unique_id = f"{entry.entry_id}_boot_mode"
+        self._attr_options = ["one_time", "persistent"]
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=manager.name,
+            manufacturer="GRUB & Limine",
+            model="Network Boot Selector",
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return current boot mode."""
+        return self._manager.current_boot_mode
+
+    async def async_select_option(self, option: str) -> None:
+        """Change BIOS boot mode."""
+        if option not in self._attr_options:
+            return
+
+        await self.hass.async_add_executor_job(
+            self._manager.write_config, self._manager.current_os, self._manager.current_timeout, option
+        )
+        self.async_write_ha_state()
+

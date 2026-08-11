@@ -98,6 +98,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._os_entries.append({
                 "name": user_input["os_name"],
                 "grub_id": user_input["grub_id"],
+                "efi_boot_num": user_input.get("efi_boot_num", "").strip(),
                 "limine_config": limine_config,
             })
 
@@ -113,6 +114,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required("os_name"): str,
             vol.Required("grub_id"): str,
+            vol.Optional("efi_boot_num", default=""): str,
             vol.Required("limine_config"): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -151,6 +153,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "limine_url": f"{base_url}/local/{web_path}/limine.conf",
             "grub_url": f"{base_url}/local/{web_path}/grub.cfg",
             "grub_http_url": f"(http,{net_host})/local/{web_path}/grub.cfg",
+            "bios_url": f"{base_url}/local/{web_path}/bios.conf",
             "os_url": f"{base_url}/local/{web_path}/os.txt",
         }
 
@@ -159,6 +162,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({}),
             description_placeholders=placeholders,
         )
+
 
 
 class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
@@ -251,6 +255,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             "limine_url": f"{base_url}/local/{web_path}/limine.conf",
             "grub_url": f"{base_url}/local/{web_path}/grub.cfg",
             "grub_http_url": f"(http,{net_host})/local/{web_path}/grub.cfg",
+            "bios_url": f"{base_url}/local/{web_path}/bios.conf",
             "os_url": f"{base_url}/local/{web_path}/os.txt",
         }
 
@@ -279,6 +284,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
                 new_entry = {
                     "name": user_input["os_name"],
                     "grub_id": user_input["grub_id"],
+                    "efi_boot_num": user_input.get("efi_boot_num", "").strip(),
                     "limine_config": limine_config,
                 }
                 if current_entry:
@@ -293,11 +299,13 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         if current_entry:
             defaults["os_name"] = current_entry["name"]
             defaults["grub_id"] = current_entry["grub_id"]
+            defaults["efi_boot_num"] = current_entry.get("efi_boot_num", "")
             defaults["limine_config"] = current_entry["limine_config"]
 
         schema_dict = {
             vol.Required("os_name", default=defaults.get("os_name", "")): str,
             vol.Required("grub_id", default=defaults.get("grub_id", "")): str,
+            vol.Optional("efi_boot_num", default=defaults.get("efi_boot_num", "")): str,
             vol.Required("limine_config", default=defaults.get("limine_config", "")): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -309,3 +317,4 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         schema = vol.Schema(schema_dict)
 
         return self.async_show_form(step_id="os_entry", data_schema=schema)
+

@@ -17,10 +17,12 @@ class PCBootManager:
         self.os_txt_path = os.path.join(boot_dir, "os.txt")
         self.grub_cfg_path = os.path.join(boot_dir, "grub.cfg")
         self.limine_conf_path = os.path.join(boot_dir, "limine.conf")
+        self.bios_conf_path = os.path.join(boot_dir, "bios.conf")
 
         # Initial state setup: find OS options
         self.os_options = [entry["name"] for entry in entries]
         self.current_os = self.os_options[0] if self.os_options else ""
+        self.current_boot_mode = "one_time"
 
     def read_config(self) -> None:
         """Read the boot configuration from files on disk."""
@@ -47,14 +49,25 @@ class PCBootManager:
             except Exception as err:
                 _LOGGER.error("[%s] Failed to read grub.cfg: %s", self.name, err)
 
-    def write_config(self, os_name: str, timeout: int) -> None:
-        """Write the boot configuration to os.txt, grub.cfg, and limine.conf."""
+        # 3. Read Bios Config if available
+        if os.path.exists(self.bios_conf_path):
+            try:
+                with open(self.bios_conf_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                if "BOOT_NEXT=" in content and not 'BOOT_NEXT=""' in content and not "BOOT_NEXT=''" in content:
+                    self.current_boot_mode = "one_time"
+            except Exception as err:
+                _LOGGER.error("[%s] Failed to read bios.conf: %s", self.name, err)
+
+    def write_config(self, os_name: str, timeout: int, boot_mode: str = "one_time") -> None:
+        """Write the boot configuration to os.txt, grub.cfg, limine.conf, and bios.conf."""
         if os_name not in self.os_options:
             _LOGGER.error("[%s] Invalid OS selected: %s", self.name, os_name)
             return
 
         self.current_os = os_name
         self.current_timeout = timeout
+        self.current_boot_mode = boot_mode
 
         # Find entry settings
         selected_entry = None
@@ -92,8 +105,6 @@ class PCBootManager:
         # 3. Write limine.conf
         try:
             # Build entries layout dynamically
-            # default_entry is 1-based index of the entry from the top of the list
-            # So if Windows is first, it's 1. Bazzite is 2. CachyOS is 3.
             default_entry_index = 1
             for index, entry in enumerate(self.entries):
                 if entry["name"] == os_name:
@@ -109,11 +120,9 @@ class PCBootManager:
             # Loop through entries and add them
             for entry in self.entries:
                 limine_content += f"/{entry['name']}\n"
-                # Add indentation to each line of the config block
                 config_lines = entry["limine_config"].strip().split("\n")
                 for line in config_lines:
                     if line.strip():
-                        # If the line already starts with whitespace, keep it, otherwise add 4 spaces
                         if line.startswith(" ") or line.startswith("\t"):
                             limine_content += f"{line}\n"
                         else:
@@ -125,3 +134,32 @@ class PCBootManager:
             _LOGGER.info("[%s] Successfully wrote limine.conf default_entry=%d, timeout=%d", self.name, default_entry_index, timeout)
         except Exception as err:
             _LOGGER.error("[%s] Failed to write limine.conf: %s", self.name, err)
+
+        # 4. Write bios.conf
+        try:
+            efi_num = selected_entry.get("efi_boot_num", "").strip()
+            
+            # Construct ordered EFI numbers
+            boot_nums = []
+            if efi_num:
+                boot_nums.append(efi_num)
+            for entry in self.entries:
+                num = entry.get("efi_boot_num", "").strip()
+                if num and num not in boot_nums:
+                    boot_nums.append(num)
+
+            boot_order_str = ",".join(boot_nums)
+            boot_next_str = efi_num if (boot_mode == "one_time" and efi_num) else ""
+
+            bios_content = (
+                f'# PC Boot Selector BIOS Config\n'
+                f'BOOT_ORDER="{boot_order_str}"\n'
+                f'BOOT_NEXT="{boot_next_str}"\n'
+                f'SELECTED_OS="{os_name}"\n'
+            )
+
+            with open(self.bios_conf_path, "w", encoding="utf-8") as f:
+                f.write(bios_content)
+            _LOGGER.info("[%s] Successfully wrote bios.conf BOOT_ORDER='%s', BOOT_NEXT='%s'", self.name, boot_order_str, boot_next_str)
+        except Exception as err:
+            _LOGGER.error("[%s] Failed to write bios.conf: %s", self.name, err)
