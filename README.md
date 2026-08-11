@@ -99,15 +99,10 @@ On the client PC, run `/usr/local/bin/update_boot_selector.sh` to fetch configur
 /usr/local/bin/update_boot_selector.sh --info
 ```
 
+### ⚡ Automated 1-Line Installation:
+Run the following command on your client PC to download and install the client update service automatically:
 
-curl -s -f -o /boot/limine.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/limine.conf"
-curl -s -f -o /boot/grub2/remote_grub.cfg "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/grub.cfg"
-curl -s -f -o /boot/bios.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/bios.conf"
-
-# Apply BIOS / UEFI settings if efibootmgr is installed
-if [ -f /boot/bios.conf ] && command -v efibootmgr >/dev/null 2>&1; then
-    source /boot/bios.conf
-    [ -n "$BOOT_NEXT" ] && efibootmgr -n "$BOOT_NEXT"
-    [ -n "$BOOT_ORDER" ] && efibootmgr -o "$BOOT_ORDER"
-fi
+```bash
+wget -O /tmp/update_boot_selector.sh http://<ha-ip>:8123/local/boot/<pc-slug>/update_boot_selector.sh && sudo bash /tmp/update_boot_selector.sh --install
 ```
+
