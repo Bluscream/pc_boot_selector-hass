@@ -204,10 +204,15 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_manage_entries(self, user_input=None):
         """Manage individual boot entries."""
+        errors = {}
+
         if user_input is not None:
             selection = user_input["selection"]
             if selection == "done":
-                return await self.async_step_instructions()
+                if not self._os_entries:
+                    errors["base"] = "empty_os_list"
+                else:
+                    return await self.async_step_instructions()
 
             if selection == "add_new":
                 self._selected_os = None
@@ -229,7 +234,8 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             )
         })
 
-        return self.async_show_form(step_id="manage_entries", data_schema=schema)
+        return self.async_show_form(step_id="manage_entries", data_schema=schema, errors=errors)
+
 
     async def async_step_instructions(self, user_input=None):
         """Show instructions for client setup before saving options."""

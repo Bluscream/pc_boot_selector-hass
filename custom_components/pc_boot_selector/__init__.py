@@ -34,7 +34,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Read configuration in executor to prevent event loop blocking
     await hass.async_add_executor_job(manager.read_config)
 
+    # Ensure configuration files on disk are written/updated immediately
+    await hass.async_add_executor_job(
+        manager.write_config, manager.current_os, manager.current_timeout, manager.current_boot_mode
+    )
+
     # Register update listener to reload integration on options save
+
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
     # Forward setup to platforms
