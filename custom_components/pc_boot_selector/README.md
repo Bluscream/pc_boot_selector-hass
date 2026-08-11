@@ -1,21 +1,30 @@
 # PC Boot Selector for Home Assistant
 
-A custom Home Assistant integration that enables selecting operating systems and adjusting boot timeouts for multiple PCs directly from your dashboard.
+A custom Home Assistant integration that enables selecting operating systems, setting BIOS boot order / one-time boot options (`BootNext`), and adjusting boot timeouts for PCs directly from your Home Assistant dashboard.
 
-Whenever you change the selection or timeout in Home Assistant, the integration writes:
-- `os.txt` (Nice name of the target OS, e.g., `Windows`)
+Whenever you change the selection, boot mode, or timeout in Home Assistant, the integration writes:
+- `os.txt` (Friendly name of the target OS, e.g. `Windows`)
 - `grub.cfg` (GRUB loader configuration snippet)
 - `limine.conf` (Limine loader configuration snippet)
+- `bios.conf` (BIOS EFI `BOOT_ORDER` and `BOOT_NEXT` parameters)
 
-These are saved under `/config/www/boot/{pc_name_slug}/`, exposing them via HTTP under your Home Assistant instance at `http://<your-ha-ip>:8123/local/boot/{pc_name_slug}/`.
+These files are saved under `/config/www/boot/{pc_slug}/`, exposing them publicly over HTTP under your Home Assistant instance at `http://<your-ha-ip>:8123/local/boot/{pc_slug}/`.
 
 ---
 
-## 🚀 Installation
+## 🚀 Features
+
+- 🖥️ **Multi-Bootloader Support**: Simultaneously updates **GRUB**, **Limine**, and **BIOS / UEFI NVRAM** configurations.
+- ⚡ **BIOS Boot Mode Selection**: Toggle between **One-Time Boot (`BootNext`)** and **Persistent BIOS Boot Order (`BootOrder`)**.
+- 🛠️ **Built-in Client Info Extractor**: Run `update_boot_selector.sh --info` on client PCs to easily extract all required IDs and config blocks for copy-pasting.
+
+---
+
+## 📦 Installation
 
 ### Via HACS (Recommended)
-1. Go to **HACS** in Home Assistant.
-2. Click the three dots in the top right and select **Custom repositories**.
+1. Open **HACS** in Home Assistant.
+2. Click the top-right menu and choose **Custom repositories**.
 3. Add `https://github.com/Bluscream/pc_boot_selector-hass` as an **Integration**.
 4. Click **Add** and search for **PC Boot Selector** to install it.
 5. Restart Home Assistant.
@@ -29,47 +38,64 @@ These are saved under `/config/www/boot/{pc_name_slug}/`, exposing them via HTTP
 ## ⚙️ Configuration
 
 1. In Home Assistant, go to **Settings** -> **Devices & Services**.
-2. Click **Add Integration** in the bottom right.
-3. Search for **PC Boot Selector** and select it.
-4. Fill in the configuration flow:
-   - **PC Name**: A friendly name for the target PC (e.g. `Gaming PC`).
-   - **Output Path**: The directory where configuration files will be written (defaults to `/config/www/boot/{slug}/`).
-   - **Timeout**: The default timeout in seconds.
-5. In the next step, add your operating systems one by one:
-   - **OS Name**: Friendly name (e.g. `Windows`, `Bazzite`, `CachyOS`).
-   - **GRUB Entry ID**: The menu entry ID for this OS in GRUB.
-   - **Limine Entry Config**: The multi-line Limine configuration parameters for this OS.
-   - Check **Add another boot entry?** to keep adding operating systems, then submit.
+2. Click **Add Integration** and search for **PC Boot Selector**.
+3. Fill in the basic settings:
+   - **PC Name**: Friendly name (e.g. `Gaming PC`).
+   - **Output Directory**: Output path (defaults to `/config/www/boot/{slug}/`).
+   - **Timeout**: Default boot timeout in seconds.
+4. Add your operating system boot options:
+   - **OS Name**: Friendly name (e.g. `Bazzite`, `Windows`).
+   - **GRUB Entry ID**: GRUB menu ID / title.
+   - **EFI Boot Number**: 4-digit BIOS boot number from `efibootmgr` (e.g., `0002` for `Boot0002`).
+   - **Limine Entry Config**: Multi-line Limine configuration snippet.
 
 ---
 
-## 🖥️ Client Setup Examples
+## 💡 Extracting Client Configs (`update_boot_selector.sh --info`)
 
-On the PC that you wish to control, configure your bootloader to pull files dynamically from Home Assistant:
+To easily retrieve the **EFI Boot Numbers**, **GRUB IDs**, and **Limine Blocks** from your client PC, run the client update script with the `--info` or `-i` flag:
 
-### 1. Limine Setup
-You can configure Limine on your client PC to load the remote configuration:
-```ini
-# Add this to the top of your /boot/limine.conf or /boot/efi/limine.conf
-# to retrieve the boot selection and timeout from Home Assistant
-
-timeout: 5
-default_entry: 1
-
-# Configure network settings or load remote config via TFTP/HTTP (if supported by your network card/Limine version)
-# Alternatively, use a script on shutdown/boot inside the OS to sync:
-# wget -O /boot/limine.conf http://192.168.2.4:8123/local/boot/gaming_pc/limine.conf
+```bash
+/usr/local/bin/update_boot_selector.sh --info
 ```
 
-### 2. GRUB Setup
-Edit `/etc/grub.d/40_custom` on the client PC:
-```bash
-#!/bin/sh
-exec tail -n +3 $0
-# This file provides an easy way to add custom menu entries.  Simply type the
-# menu entries you want to add after this comment.  Be careful not to change
-# the 'exec tail' line above.
+### Sample Extractor Output:
+```text
+--- 1. EFI Boot Numbers (BIOS) ---
+  * Name: Limine       -> EFI Boot Number : 0001
+  * Name: Fedora       -> EFI Boot Number : 0002
+  * Name: Windows      -> EFI Boot Number : 0006
 
-# Example startup sync script or menu inclusion:
-# wget -O /boot/grub/remote_grub.cfg http://192.168.2.4:8123/local/boot/gaming_pc/grub.cfg
+--- 2. GRUB Entry IDs ---
+  * BLS Title          -> GRUB ID : Bazzite (ostree:0)
+
+--- 3. Limine Entry Blocks ---
+/Windows
+    protocol: efi_chainload
+    image_path: guid(2E39665E-E798-4C29-A9EF-A28E3F248290):/efi/Microsoft/Boot/bootmgfw.efi
+```
+
+---
+
+## 🖥️ Client PC Setup
+
+On the client PC, configure a startup/shutdown service or script (`/usr/local/bin/update_boot_selector.sh`) to fetch configurations from Home Assistant:
+
+```bash
+#!/bin/bash
+HA_IP="192.168.2.4"
+HA_PORT="8123"
+PC_SLUG="gaming-pc"
+
+# Fetch configurations
+curl -s -f -o /boot/limine.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/limine.conf"
+curl -s -f -o /boot/grub2/remote_grub.cfg "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/grub.cfg"
+curl -s -f -o /boot/bios.conf "http://${HA_IP}:${HA_PORT}/local/boot/${PC_SLUG}/bios.conf"
+
+# Apply BIOS / UEFI settings if efibootmgr is installed
+if [ -f /boot/bios.conf ] && command -v efibootmgr >/dev/null 2>&1; then
+    source /boot/bios.conf
+    [ -n "$BOOT_NEXT" ] && efibootmgr -n "$BOOT_NEXT"
+    [ -n "$BOOT_ORDER" ] && efibootmgr -o "$BOOT_ORDER"
+fi
 ```
