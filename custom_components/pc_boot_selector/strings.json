@@ -23,8 +23,9 @@
       },
       "instructions": {
         "title": "Client Setup Instructions",
-        "description": "Your PC Boot Selector configuration files will be available publicly at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### 🖥️ Client Setup Instructions\n\nConfigure your client PC to load these remote configurations:\n\n#### 1. Limine Setup\nAdd a script to fetch the Limine configuration:\n```bash\nwget -O /boot/limine.conf {limine_url}\n```\n\n#### 2. BIOS / UEFI Setup\nFetch `{bios_url}` and execute `efibootmgr -n \"$BOOT_NEXT\"` or `efibootmgr -o \"$BOOT_ORDER\"`.\n\n#### 3. GRUB Setup\nSource `{grub_http_url}` or download `{grub_url}`."
+        "description": "Your PC Boot Selector configuration files are available at:\n* **Limine Config**: `{limine_url}`\n* **GRUB Config**: `{grub_url}`\n* **BIOS Config**: `{bios_url}`\n* **OS Selection**: `{os_url}`\n\n---\n\n### ⚡ Quick Client Installation\n\nRun this 1-line command on your client PC to download & install the client update service:\n```bash\nwget -O /tmp/update_boot_selector.sh {script_url} && sudo bash /tmp/update_boot_selector.sh --install\n```\n\nTo extract copy/paste boot fields on your client PC, run:\n```bash\nsudo update_boot_selector.sh --info\n```"
       }
+
     },
     "error": {
       "invalid_dir": "Cannot write to the specified output directory. Please make sure the path is correct.",

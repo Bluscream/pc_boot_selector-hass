@@ -164,7 +164,21 @@ class PCBootManager:
         except Exception as err:
             _LOGGER.error("[%s] Failed to write bios.conf: %s", self.name, err)
 
-        # 5. Write index.html
+        # 5. Copy client script to boot_dir so clients can download it directly
+        try:
+            src_script = os.path.join(os.path.dirname(__file__), "update_boot_selector.sh")
+            dst_script = os.path.join(self.boot_dir, "update_boot_selector.sh")
+            if os.path.exists(src_script):
+                with open(src_script, "r", encoding="utf-8") as f_in:
+                    script_data = f_in.read()
+                with open(dst_script, "w", encoding="utf-8") as f_out:
+                    f_out.write(script_data)
+                os.chmod(dst_script, 0o755)
+                _LOGGER.info("[%s] Successfully copied update_boot_selector.sh to %s", self.name, dst_script)
+        except Exception as err:
+            _LOGGER.error("[%s] Failed to copy update_boot_selector.sh: %s", self.name, err)
+
+        # 6. Write index.html
         try:
             index_html_path = os.path.join(self.boot_dir, "index.html")
             index_content = (
@@ -174,25 +188,32 @@ class PCBootManager:
                 '  <meta charset="utf-8">\n'
                 f"  <title>PC Boot Selector - {self.name}</title>\n"
                 "  <style>\n"
-                "    body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #f8fafc; }\n"
-                "    h1 { color: #38bdf8; font-size: 1.5rem; }\n"
+                "    body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #f8fafc; line-height: 1.5; }\n"
+                "    h1 { color: #38bdf8; font-size: 1.6rem; }\n"
+                "    h2 { color: #94a3b8; font-size: 1.2rem; margin-top: 1.5rem; }\n"
                 "    ul { list-style: none; padding: 0; }\n"
                 "    li { margin: 0.5rem 0; }\n"
-                "    a { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.1rem; }\n"
+                "    a { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.05rem; }\n"
                 "    a:hover { text-decoration: underline; color: #7dd3fc; }\n"
                 "    .badge { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px; color: #94a3b8; font-size: 0.85rem; margin-left: 0.5rem; }\n"
+                "    pre { background: #1e293b; padding: 1rem; border-radius: 6px; overflow-x: auto; color: #38bdf8; font-size: 0.9rem; }\n"
                 "  </style>\n"
                 "</head>\n"
                 "<body>\n"
                 f"  <h1>🖥️ PC Boot Selector: {self.name}</h1>\n"
                 f"  <p>Current Target OS: <strong>{os_name}</strong> | Boot Mode: <strong>{boot_mode}</strong></p>\n"
                 "  <hr style='border-color: #334155;'>\n"
+                "  <h2>📄 Generated Configuration Files</h2>\n"
                 "  <ul>\n"
                 '    <li><a href="os.txt">os.txt</a> <span class="badge">Plain Text OS Name</span></li>\n'
                 '    <li><a href="grub.cfg">grub.cfg</a> <span class="badge">GRUB Config</span></li>\n'
                 '    <li><a href="limine.conf">limine.conf</a> <span class="badge">Limine Config</span></li>\n'
                 '    <li><a href="bios.conf">bios.conf</a> <span class="badge">BIOS / UEFI BootOrder & BootNext</span></li>\n'
+                '    <li><a href="update_boot_selector.sh">update_boot_selector.sh</a> <span class="badge">Client Setup Script</span></li>\n'
                 "  </ul>\n"
+                "  <h2>⚡ One-Line Client Installation Command</h2>\n"
+                "  <p>Run the following command on your client PC to download & install the update service:</p>\n"
+                "  <pre>wget -O /tmp/update_boot_selector.sh update_boot_selector.sh &amp;&amp; sudo bash /tmp/update_boot_selector.sh --install</pre>\n"
                 "</body>\n"
                 "</html>\n"
             )
@@ -201,4 +222,5 @@ class PCBootManager:
             _LOGGER.info("[%s] Successfully wrote index.html", self.name)
         except Exception as err:
             _LOGGER.error("[%s] Failed to write index.html: %s", self.name, err)
+
 

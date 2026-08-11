@@ -158,6 +158,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "grub_http_url": f"(http,{net_host})/local/{web_path}/grub.cfg",
             "bios_url": f"{base_url}/local/{web_path}/bios.conf",
             "os_url": f"{base_url}/local/{web_path}/os.txt",
+            "script_url": f"{base_url}/local/{web_path}/update_boot_selector.sh",
         }
 
         return self.async_show_form(
@@ -266,6 +267,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             "grub_http_url": f"(http,{net_host})/local/{web_path}/grub.cfg",
             "bios_url": f"{base_url}/local/{web_path}/bios.conf",
             "os_url": f"{base_url}/local/{web_path}/os.txt",
+            "script_url": f"{base_url}/local/{web_path}/update_boot_selector.sh",
         }
 
         return self.async_show_form(
