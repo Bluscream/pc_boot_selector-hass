@@ -114,12 +114,15 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required("os_name"): str,
             vol.Required("grub_id"): str,
-            vol.Optional("efi_boot_num", default=""): str,
+            vol.Optional("efi_boot_num", default=""): selector.TextSelector(
+                selector.TextSelectorConfig()
+            ),
             vol.Required("limine_config"): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
             vol.Optional("add_another", default=False): bool,
         })
+
 
         return self.async_show_form(
             step_id="os_entry",
@@ -305,11 +308,14 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         schema_dict = {
             vol.Required("os_name", default=defaults.get("os_name", "")): str,
             vol.Required("grub_id", default=defaults.get("grub_id", "")): str,
-            vol.Optional("efi_boot_num", default=defaults.get("efi_boot_num", "")): str,
+            vol.Optional("efi_boot_num", default=defaults.get("efi_boot_num", "")): selector.TextSelector(
+                selector.TextSelectorConfig()
+            ),
             vol.Required("limine_config", default=defaults.get("limine_config", "")): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
         }
+
 
         if current_entry:
             schema_dict[vol.Optional("delete_entry", default=False)] = bool
