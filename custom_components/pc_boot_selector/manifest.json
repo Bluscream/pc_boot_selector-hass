@@ -4,9 +4,10 @@
   "codeowners": ["@bluscream"],
   "documentation": "https://github.com/bluscream",
   "iot_class": "local_polling",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "config_flow": true
 }
+
 
 
 

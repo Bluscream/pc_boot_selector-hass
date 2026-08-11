@@ -163,3 +163,42 @@ class PCBootManager:
             _LOGGER.info("[%s] Successfully wrote bios.conf BOOT_ORDER='%s', BOOT_NEXT='%s'", self.name, boot_order_str, boot_next_str)
         except Exception as err:
             _LOGGER.error("[%s] Failed to write bios.conf: %s", self.name, err)
+
+        # 5. Write index.html
+        try:
+            index_html_path = os.path.join(self.boot_dir, "index.html")
+            index_content = (
+                "<!DOCTYPE html>\n"
+                "<html>\n"
+                "<head>\n"
+                '  <meta charset="utf-8">\n'
+                f"  <title>PC Boot Selector - {self.name}</title>\n"
+                "  <style>\n"
+                "    body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #f8fafc; }\n"
+                "    h1 { color: #38bdf8; font-size: 1.5rem; }\n"
+                "    ul { list-style: none; padding: 0; }\n"
+                "    li { margin: 0.5rem 0; }\n"
+                "    a { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.1rem; }\n"
+                "    a:hover { text-decoration: underline; color: #7dd3fc; }\n"
+                "    .badge { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px; color: #94a3b8; font-size: 0.85rem; margin-left: 0.5rem; }\n"
+                "  </style>\n"
+                "</head>\n"
+                "<body>\n"
+                f"  <h1>🖥️ PC Boot Selector: {self.name}</h1>\n"
+                f"  <p>Current Target OS: <strong>{os_name}</strong> | Boot Mode: <strong>{boot_mode}</strong></p>\n"
+                "  <hr style='border-color: #334155;'>\n"
+                "  <ul>\n"
+                '    <li><a href="os.txt">os.txt</a> <span class="badge">Plain Text OS Name</span></li>\n'
+                '    <li><a href="grub.cfg">grub.cfg</a> <span class="badge">GRUB Config</span></li>\n'
+                '    <li><a href="limine.conf">limine.conf</a> <span class="badge">Limine Config</span></li>\n'
+                '    <li><a href="bios.conf">bios.conf</a> <span class="badge">BIOS / UEFI BootOrder & BootNext</span></li>\n'
+                "  </ul>\n"
+                "</body>\n"
+                "</html>\n"
+            )
+            with open(index_html_path, "w", encoding="utf-8") as f:
+                f.write(index_content)
+            _LOGGER.info("[%s] Successfully wrote index.html", self.name)
+        except Exception as err:
+            _LOGGER.error("[%s] Failed to write index.html: %s", self.name, err)
+
