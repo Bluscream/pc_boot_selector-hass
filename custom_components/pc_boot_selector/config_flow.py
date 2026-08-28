@@ -1,16 +1,15 @@
-import os
 import logging
-import voluptuous as vol
+import os
 import textwrap
 
+import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.helpers import selector
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import slugify
 
 from .const import DOMAIN
-
-from homeassistant.core import callback
-from homeassistant.helpers.network import get_url, NoURLAvailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Check if the output directory is writable inside the executor
             try:
                 await self.hass.async_add_executor_job(check_dir, boot_dir)
-            except Exception as err:
+            except OSError as err:
                 _LOGGER.error("Failed to write to directory %s: %s", boot_dir, err)
                 errors["boot_dir"] = "invalid_dir"
 
@@ -94,7 +93,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            limine_config = textwrap.dedent(user_input["limine_config"]).strip()
+            limine_config = textwrap.dedent(user_input.get("limine_config", "") or "").strip()
             self._os_entries.append({
                 "name": user_input["os_name"],
                 "grub_id": user_input["grub_id"],
@@ -117,7 +116,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional("efi_boot_num", default=""): selector.TextSelector(
                 selector.TextSelectorConfig()
             ),
-            vol.Required("limine_config"): selector.TextSelector(
+            vol.Optional("limine_config", default=""): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
             vol.Optional("add_another", default=False): bool,
@@ -278,8 +277,6 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_os_entry(self, user_input=None):
         """Add or edit an operating system configuration."""
-        errors = {}
-
         current_entry = None
         if self._selected_os:
             for entry in self._os_entries:
@@ -291,7 +288,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             if user_input.get("delete_entry") and current_entry:
                 self._os_entries.remove(current_entry)
             else:
-                limine_config = textwrap.dedent(user_input["limine_config"]).strip()
+                limine_config = textwrap.dedent(user_input.get("limine_config", "") or "").strip()
                 new_entry = {
                     "name": user_input["os_name"],
                     "grub_id": user_input["grub_id"],
@@ -311,7 +308,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             defaults["os_name"] = current_entry["name"]
             defaults["grub_id"] = current_entry["grub_id"]
             defaults["efi_boot_num"] = current_entry.get("efi_boot_num", "")
-            defaults["limine_config"] = current_entry["limine_config"]
+            defaults["limine_config"] = current_entry.get("limine_config", "")
 
         schema_dict = {
             vol.Required("os_name", default=defaults.get("os_name", "")): str,
@@ -319,7 +316,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional("efi_boot_num", default=defaults.get("efi_boot_num", "")): selector.TextSelector(
                 selector.TextSelectorConfig()
             ),
-            vol.Required("limine_config", default=defaults.get("limine_config", "")): selector.TextSelector(
+            vol.Optional("limine_config", default=defaults.get("limine_config", "")): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
         }

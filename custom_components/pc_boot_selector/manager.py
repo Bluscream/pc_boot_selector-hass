@@ -1,6 +1,6 @@
+import logging
 import os
 import re
-import logging
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class PCBootManager:
                 if content in self.os_options:
                     self.current_os = content
                 _LOGGER.info("[%s] Read current OS from os.txt: %s", self.name, self.current_os)
-            except Exception as err:
+            except OSError as err:
                 _LOGGER.error("[%s] Failed to read os.txt: %s", self.name, err)
 
         # 2. Read Timeout from grub.cfg
@@ -46,7 +46,7 @@ class PCBootManager:
                 if match:
                     self.current_timeout = int(match.group(1))
                     _LOGGER.info("[%s] Read current timeout from grub.cfg: %d", self.name, self.current_timeout)
-            except Exception as err:
+            except OSError as err:
                 _LOGGER.error("[%s] Failed to read grub.cfg: %s", self.name, err)
 
         # 3. Read Bios Config if available
@@ -56,7 +56,7 @@ class PCBootManager:
                     content = f.read()
                 if "BOOT_NEXT=" in content and not 'BOOT_NEXT=""' in content and not "BOOT_NEXT=''" in content:
                     self.current_boot_mode = "one_time"
-            except Exception as err:
+            except OSError as err:
                 _LOGGER.error("[%s] Failed to read bios.conf: %s", self.name, err)
 
     def write_config(self, os_name: str, timeout: int, boot_mode: str = "one_time") -> None:
@@ -87,7 +87,7 @@ class PCBootManager:
             with open(self.os_txt_path, "w", encoding="utf-8") as f:
                 f.write(f"{os_name}\n")
             _LOGGER.info("[%s] Successfully wrote %s to %s", self.name, os_name, self.os_txt_path)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to write os.txt: %s", self.name, err)
 
         # 2. Write grub.cfg
@@ -99,7 +99,7 @@ class PCBootManager:
             with open(self.grub_cfg_path, "w", encoding="utf-8") as f:
                 f.write(grub_content)
             _LOGGER.info("[%s] Successfully wrote grub.cfg default=%s, timeout=%d", self.name, selected_entry["grub_id"], timeout)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to write grub.cfg: %s", self.name, err)
 
         # 3. Write limine.conf
@@ -120,10 +120,15 @@ class PCBootManager:
             # Loop through entries and add them
             for entry in self.entries:
                 limine_content += f"/{entry['name']}\n"
-                config_lines = entry["limine_config"].strip().split("\n")
+                raw_config = entry.get("limine_config", "").strip()
+                if not raw_config:
+                    config_lines = ["protocol: efi_chainload", "image_path: boot():/EFI/BOOT/BOOTX64.EFI"]
+                else:
+                    config_lines = raw_config.split("\n")
+
                 for line in config_lines:
                     if line.strip():
-                        if line.startswith(" ") or line.startswith("\t"):
+                        if line.startswith((" ", "\t")):
                             limine_content += f"{line}\n"
                         else:
                             limine_content += f"    {line}\n"
@@ -132,7 +137,7 @@ class PCBootManager:
             with open(self.limine_conf_path, "w", encoding="utf-8") as f:
                 f.write(limine_content)
             _LOGGER.info("[%s] Successfully wrote limine.conf default_entry=%d, timeout=%d", self.name, default_entry_index, timeout)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to write limine.conf: %s", self.name, err)
 
         # 4. Write bios.conf
@@ -161,7 +166,7 @@ class PCBootManager:
             with open(self.bios_conf_path, "w", encoding="utf-8") as f:
                 f.write(bios_content)
             _LOGGER.info("[%s] Successfully wrote bios.conf BOOT_ORDER='%s', BOOT_NEXT='%s'", self.name, boot_order_str, boot_next_str)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to write bios.conf: %s", self.name, err)
 
         # 5. Copy client script to boot_dir so clients can download it directly
@@ -175,7 +180,7 @@ class PCBootManager:
                     f_out.write(script_data)
                 os.chmod(dst_script, 0o755)
                 _LOGGER.info("[%s] Successfully copied update_boot_selector.sh to %s", self.name, dst_script)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to copy update_boot_selector.sh: %s", self.name, err)
 
         # 6. Write index.html
@@ -220,7 +225,7 @@ class PCBootManager:
             with open(index_html_path, "w", encoding="utf-8") as f:
                 f.write(index_content)
             _LOGGER.info("[%s] Successfully wrote index.html", self.name)
-        except Exception as err:
+        except OSError as err:
             _LOGGER.error("[%s] Failed to write index.html: %s", self.name, err)
 
 
