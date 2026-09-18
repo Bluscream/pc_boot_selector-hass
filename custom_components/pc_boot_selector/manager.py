@@ -4,6 +4,7 @@ import re
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class PCBootManager:
     """Manages reading and writing PC boot configuration files."""
 
@@ -29,7 +30,7 @@ class PCBootManager:
         # 1. Read OS from os.txt
         if os.path.exists(self.os_txt_path):
             try:
-                with open(self.os_txt_path, "r", encoding="utf-8") as f:
+                with open(self.os_txt_path, encoding="utf-8") as f:
                     content = f.read().strip()
                 if content in self.os_options:
                     self.current_os = content
@@ -40,21 +41,29 @@ class PCBootManager:
         # 2. Read Timeout from grub.cfg
         if os.path.exists(self.grub_cfg_path):
             try:
-                with open(self.grub_cfg_path, "r", encoding="utf-8") as f:
+                with open(self.grub_cfg_path, encoding="utf-8") as f:
                     content = f.read()
                 match = re.search(r"set timeout=(\d+)", content)
                 if match:
                     self.current_timeout = int(match.group(1))
-                    _LOGGER.info("[%s] Read current timeout from grub.cfg: %d", self.name, self.current_timeout)
+                    _LOGGER.info(
+                        "[%s] Read current timeout from grub.cfg: %d",
+                        self.name,
+                        self.current_timeout,
+                    )
             except OSError as err:
                 _LOGGER.error("[%s] Failed to read grub.cfg: %s", self.name, err)
 
         # 3. Read Bios Config if available
         if os.path.exists(self.bios_conf_path):
             try:
-                with open(self.bios_conf_path, "r", encoding="utf-8") as f:
+                with open(self.bios_conf_path, encoding="utf-8") as f:
                     content = f.read()
-                if "BOOT_NEXT=" in content and not 'BOOT_NEXT=""' in content and not "BOOT_NEXT=''" in content:
+                if (
+                    "BOOT_NEXT=" in content
+                    and 'BOOT_NEXT=""' not in content
+                    and "BOOT_NEXT=''" not in content
+                ):
                     self.current_boot_mode = "one_time"
             except OSError as err:
                 _LOGGER.error("[%s] Failed to read bios.conf: %s", self.name, err)
@@ -92,13 +101,15 @@ class PCBootManager:
 
         # 2. Write grub.cfg
         try:
-            grub_content = (
-                f'set default="{selected_entry["grub_id"]}"\n'
-                f'set timeout={timeout}\n'
-            )
+            grub_content = f'set default="{selected_entry["grub_id"]}"\nset timeout={timeout}\n'
             with open(self.grub_cfg_path, "w", encoding="utf-8") as f:
                 f.write(grub_content)
-            _LOGGER.info("[%s] Successfully wrote grub.cfg default=%s, timeout=%d", self.name, selected_entry["grub_id"], timeout)
+            _LOGGER.info(
+                "[%s] Successfully wrote grub.cfg default=%s, timeout=%d",
+                self.name,
+                selected_entry["grub_id"],
+                timeout,
+            )
         except OSError as err:
             _LOGGER.error("[%s] Failed to write grub.cfg: %s", self.name, err)
 
@@ -122,7 +133,10 @@ class PCBootManager:
                 limine_content += f"/{entry['name']}\n"
                 raw_config = entry.get("limine_config", "").strip()
                 if not raw_config:
-                    config_lines = ["protocol: efi_chainload", "image_path: boot():/EFI/BOOT/BOOTX64.EFI"]
+                    config_lines = [
+                        "protocol: efi_chainload",
+                        "image_path: boot():/EFI/BOOT/BOOTX64.EFI",
+                    ]
                 else:
                     config_lines = raw_config.split("\n")
 
@@ -136,14 +150,19 @@ class PCBootManager:
 
             with open(self.limine_conf_path, "w", encoding="utf-8") as f:
                 f.write(limine_content)
-            _LOGGER.info("[%s] Successfully wrote limine.conf default_entry=%d, timeout=%d", self.name, default_entry_index, timeout)
+            _LOGGER.info(
+                "[%s] Successfully wrote limine.conf default_entry=%d, timeout=%d",
+                self.name,
+                default_entry_index,
+                timeout,
+            )
         except OSError as err:
             _LOGGER.error("[%s] Failed to write limine.conf: %s", self.name, err)
 
         # 4. Write bios.conf
         try:
             efi_num = selected_entry.get("efi_boot_num", "").strip()
-            
+
             # Construct ordered EFI numbers
             boot_nums = []
             if efi_num:
@@ -157,7 +176,7 @@ class PCBootManager:
             boot_next_str = efi_num if (boot_mode == "one_time" and efi_num) else ""
 
             bios_content = (
-                f'# PC Boot Selector BIOS Config\n'
+                f"# PC Boot Selector BIOS Config\n"
                 f'BOOT_ORDER="{boot_order_str}"\n'
                 f'BOOT_NEXT="{boot_next_str}"\n'
                 f'SELECTED_OS="{os_name}"\n'
@@ -165,7 +184,12 @@ class PCBootManager:
 
             with open(self.bios_conf_path, "w", encoding="utf-8") as f:
                 f.write(bios_content)
-            _LOGGER.info("[%s] Successfully wrote bios.conf BOOT_ORDER='%s', BOOT_NEXT='%s'", self.name, boot_order_str, boot_next_str)
+            _LOGGER.info(
+                "[%s] Successfully wrote bios.conf BOOT_ORDER='%s', BOOT_NEXT='%s'",
+                self.name,
+                boot_order_str,
+                boot_next_str,
+            )
         except OSError as err:
             _LOGGER.error("[%s] Failed to write bios.conf: %s", self.name, err)
 
@@ -174,12 +198,14 @@ class PCBootManager:
             src_script = os.path.join(os.path.dirname(__file__), "update_boot_selector.sh")
             dst_script = os.path.join(self.boot_dir, "update_boot_selector.sh")
             if os.path.exists(src_script):
-                with open(src_script, "r", encoding="utf-8") as f_in:
+                with open(src_script, encoding="utf-8") as f_in:
                     script_data = f_in.read()
                 with open(dst_script, "w", encoding="utf-8") as f_out:
                     f_out.write(script_data)
                 os.chmod(dst_script, 0o755)
-                _LOGGER.info("[%s] Successfully copied update_boot_selector.sh to %s", self.name, dst_script)
+                _LOGGER.info(
+                    "[%s] Successfully copied update_boot_selector.sh to %s", self.name, dst_script
+                )
         except OSError as err:
             _LOGGER.error("[%s] Failed to copy update_boot_selector.sh: %s", self.name, err)
 
@@ -193,32 +219,44 @@ class PCBootManager:
                 '  <meta charset="utf-8">\n'
                 f"  <title>PC Boot Selector - {self.name}</title>\n"
                 "  <style>\n"
-                "    body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #f8fafc; line-height: 1.5; }\n"
+                "    body { font-family: system-ui, sans-serif; margin: 2rem;"
+                " background: #0f172a; color: #f8fafc; line-height: 1.5; }\n"
                 "    h1 { color: #38bdf8; font-size: 1.6rem; }\n"
                 "    h2 { color: #94a3b8; font-size: 1.2rem; margin-top: 1.5rem; }\n"
                 "    ul { list-style: none; padding: 0; }\n"
                 "    li { margin: 0.5rem 0; }\n"
-                "    a { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.05rem; }\n"
+                "    a { color: #38bdf8; text-decoration: none; font-weight: bold;"
+                " font-size: 1.05rem; }\n"
                 "    a:hover { text-decoration: underline; color: #7dd3fc; }\n"
-                "    .badge { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px; color: #94a3b8; font-size: 0.85rem; margin-left: 0.5rem; }\n"
-                "    pre { background: #1e293b; padding: 1rem; border-radius: 6px; overflow-x: auto; color: #38bdf8; font-size: 0.9rem; }\n"
+                "    .badge { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px;"
+                " color: #94a3b8; font-size: 0.85rem; margin-left: 0.5rem; }\n"
+                "    pre { background: #1e293b; padding: 1rem; border-radius: 6px;"
+                " overflow-x: auto; color: #38bdf8; font-size: 0.9rem; }\n"
                 "  </style>\n"
                 "</head>\n"
                 "<body>\n"
                 f"  <h1>🖥️ PC Boot Selector: {self.name}</h1>\n"
-                f"  <p>Current Target OS: <strong>{os_name}</strong> | Boot Mode: <strong>{boot_mode}</strong></p>\n"
+                f"  <p>Current Target OS: <strong>{os_name}</strong> |"
+                f" Boot Mode: <strong>{boot_mode}</strong></p>\n"
                 "  <hr style='border-color: #334155;'>\n"
                 "  <h2>📄 Generated Configuration Files</h2>\n"
                 "  <ul>\n"
-                '    <li><a href="os.txt">os.txt</a> <span class="badge">Plain Text OS Name</span></li>\n'
-                '    <li><a href="grub.cfg">grub.cfg</a> <span class="badge">GRUB Config</span></li>\n'
-                '    <li><a href="limine.conf">limine.conf</a> <span class="badge">Limine Config</span></li>\n'
-                '    <li><a href="bios.conf">bios.conf</a> <span class="badge">BIOS / UEFI BootOrder & BootNext</span></li>\n'
-                '    <li><a href="update_boot_selector.sh">update_boot_selector.sh</a> <span class="badge">Client Setup Script</span></li>\n'
+                '    <li><a href="os.txt">os.txt</a>'
+                ' <span class="badge">Plain Text OS Name</span></li>\n'
+                '    <li><a href="grub.cfg">grub.cfg</a>'
+                ' <span class="badge">GRUB Config</span></li>\n'
+                '    <li><a href="limine.conf">limine.conf</a>'
+                ' <span class="badge">Limine Config</span></li>\n'
+                '    <li><a href="bios.conf">bios.conf</a>'
+                ' <span class="badge">BIOS / UEFI BootOrder &amp; BootNext</span></li>\n'
+                '    <li><a href="update_boot_selector.sh">update_boot_selector.sh</a>'
+                ' <span class="badge">Client Setup Script</span></li>\n'
                 "  </ul>\n"
                 "  <h2>⚡ One-Line Client Installation Command</h2>\n"
-                "  <p>Run the following command on your client PC to download & install the update service:</p>\n"
-                "  <pre>wget -O /tmp/update_boot_selector.sh update_boot_selector.sh &amp;&amp; sudo bash /tmp/update_boot_selector.sh --install</pre>\n"
+                "  <p>Run the following command on your client PC to download"
+                " &amp; install the update service:</p>\n"
+                "  <pre>wget -O /tmp/update_boot_selector.sh update_boot_selector.sh"
+                " &amp;&amp; sudo bash /tmp/update_boot_selector.sh --install</pre>\n"
                 "</body>\n"
                 "</html>\n"
             )
@@ -227,5 +265,3 @@ class PCBootManager:
             _LOGGER.info("[%s] Successfully wrote index.html", self.name)
         except OSError as err:
             _LOGGER.error("[%s] Failed to write index.html: %s", self.name, err)
-
-

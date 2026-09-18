@@ -11,6 +11,7 @@ from .manager import PCBootManager
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -18,10 +19,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up the select platform from a config entry."""
     manager: PCBootManager = hass.data[DOMAIN][entry.entry_id]["manager"]
-    async_add_entities([
-        PCBootSelectorSelect(entry, manager),
-        PCBootModeSelect(entry, manager),
-    ], True)
+    async_add_entities(
+        [
+            PCBootSelectorSelect(entry, manager),
+            PCBootModeSelect(entry, manager),
+        ],
+        True,
+    )
 
 
 class PCBootSelectorSelect(SelectEntity):
@@ -36,7 +40,7 @@ class PCBootSelectorSelect(SelectEntity):
         self._manager = manager
         self._attr_unique_id = f"{entry.entry_id}_os"
         self._attr_options = manager.os_options
-        
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=manager.name,
@@ -53,10 +57,13 @@ class PCBootSelectorSelect(SelectEntity):
         """Change the selected option."""
         if option not in self._attr_options:
             return
-        
+
         # Write updated files in executor
         await self.hass.async_add_executor_job(
-            self._manager.write_config, option, self._manager.current_timeout, self._manager.current_boot_mode
+            self._manager.write_config,
+            option,
+            self._manager.current_timeout,
+            self._manager.current_boot_mode,
         )
         self.async_write_ha_state()
 
@@ -92,7 +99,9 @@ class PCBootModeSelect(SelectEntity):
             return
 
         await self.hass.async_add_executor_job(
-            self._manager.write_config, self._manager.current_os, self._manager.current_timeout, option
+            self._manager.write_config,
+            self._manager.current_os,
+            self._manager.current_timeout,
+            option,
         )
         self.async_write_ha_state()
-

@@ -11,9 +11,11 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SELECT, Platform.NUMBER]
 
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the PC Boot Selector component."""
     return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up PC Boot Selector from a config entry."""
@@ -28,9 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "manager": manager
-    }
+    hass.data[DOMAIN][entry.entry_id] = {"manager": manager}
 
     # Read configuration in executor to prevent event loop blocking
     await hass.async_add_executor_job(manager.read_config)
@@ -48,6 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options/data update."""

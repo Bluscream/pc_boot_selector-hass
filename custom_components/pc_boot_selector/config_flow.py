@@ -13,12 +13,14 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def get_base_url(hass) -> str:
     """Get the base URL of the Home Assistant instance."""
     try:
         return get_url(hass)
     except NoURLAvailableError:
         return "http://homeassistant.local:8123"
+
 
 def check_dir(boot_dir: str) -> None:
     """Check if the directory is writable."""
@@ -54,7 +56,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             name = user_input["name"]
             slug = slugify(name)
-            
+
             # Prevent duplicate instances with the same name
             await self.async_set_unique_id(slug)
             self._abort_if_unique_id_configured()
@@ -76,11 +78,15 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._timeout = user_input.get("timeout", 5)
                 return await self.async_step_os_entry()
 
-        schema = vol.Schema({
-            vol.Required("name"): str,
-            vol.Optional("boot_dir"): str,
-            vol.Required("timeout", default=5): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("name"): str,
+                vol.Optional("boot_dir"): str,
+                vol.Required("timeout", default=5): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=60)
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="user",
@@ -94,12 +100,14 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             limine_config = textwrap.dedent(user_input.get("limine_config", "") or "").strip()
-            self._os_entries.append({
-                "name": user_input["os_name"],
-                "grub_id": user_input["grub_id"],
-                "efi_boot_num": user_input.get("efi_boot_num", "").strip(),
-                "limine_config": limine_config,
-            })
+            self._os_entries.append(
+                {
+                    "name": user_input["os_name"],
+                    "grub_id": user_input["grub_id"],
+                    "efi_boot_num": user_input.get("efi_boot_num", "").strip(),
+                    "limine_config": limine_config,
+                }
+            )
 
             # Loop back if the user wants to add another OS option
             if user_input.get("add_another"):
@@ -110,18 +118,19 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return await self.async_step_instructions()
 
-        schema = vol.Schema({
-            vol.Required("os_name"): str,
-            vol.Required("grub_id"): str,
-            vol.Optional("efi_boot_num", default=""): selector.TextSelector(
-                selector.TextSelectorConfig()
-            ),
-            vol.Optional("limine_config", default=""): selector.TextSelector(
-                selector.TextSelectorConfig(multiline=True)
-            ),
-            vol.Optional("add_another", default=False): bool,
-        })
-
+        schema = vol.Schema(
+            {
+                vol.Required("os_name"): str,
+                vol.Required("grub_id"): str,
+                vol.Optional("efi_boot_num", default=""): selector.TextSelector(
+                    selector.TextSelectorConfig()
+                ),
+                vol.Optional("limine_config", default=""): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("add_another", default=False): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="os_entry",
@@ -139,7 +148,7 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "boot_dir": self._boot_dir,
                     "timeout": self._timeout,
                     "entries": self._os_entries,
-                }
+                },
             )
 
         web_path = self._boot_dir
@@ -167,7 +176,6 @@ class PCBootSelectorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-
 class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for PC Boot Selector."""
 
@@ -190,11 +198,15 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
             self._timeout = user_input["timeout"]
             return await self.async_step_manage_entries()
 
-        schema = vol.Schema({
-            vol.Required("name", default=self._name): str,
-            vol.Required("boot_dir", default=self._boot_dir): str,
-            vol.Required("timeout", default=self._timeout): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("name", default=self._name): str,
+                vol.Required("boot_dir", default=self._boot_dir): str,
+                vol.Required("timeout", default=self._timeout): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=60)
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -225,17 +237,20 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         for entry in self._os_entries:
             options[entry["name"]] = entry["name"]
 
-        schema = vol.Schema({
-            vol.Required("selection", default="done"): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[selector.SelectOptionDict(value=k, label=v) for k, v in options.items()],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+        schema = vol.Schema(
+            {
+                vol.Required("selection", default="done"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=k, label=v) for k, v in options.items()
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 )
-            )
-        })
+            }
+        )
 
         return self.async_show_form(step_id="manage_entries", data_schema=schema, errors=errors)
-
 
     async def async_step_instructions(self, user_input=None):
         """Show instructions for client setup before saving options."""
@@ -246,9 +261,7 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
                 "timeout": self._timeout,
                 "entries": self._os_entries,
             }
-            self.hass.config_entries.async_update_entry(
-                self._config_entry, data=new_data
-            )
+            self.hass.config_entries.async_update_entry(self._config_entry, data=new_data)
             return self.async_create_entry(title="", data={})
 
         web_path = self._boot_dir
@@ -313,14 +326,13 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         schema_dict = {
             vol.Required("os_name", default=defaults.get("os_name", "")): str,
             vol.Required("grub_id", default=defaults.get("grub_id", "")): str,
-            vol.Optional("efi_boot_num", default=defaults.get("efi_boot_num", "")): selector.TextSelector(
-                selector.TextSelectorConfig()
-            ),
-            vol.Optional("limine_config", default=defaults.get("limine_config", "")): selector.TextSelector(
-                selector.TextSelectorConfig(multiline=True)
-            ),
+            vol.Optional(
+                "efi_boot_num", default=defaults.get("efi_boot_num", "")
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+            vol.Optional(
+                "limine_config", default=defaults.get("limine_config", "")
+            ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
         }
-
 
         if current_entry:
             schema_dict[vol.Optional("delete_entry", default=False)] = bool
@@ -328,4 +340,3 @@ class PCBootSelectorOptionsFlowHandler(config_entries.OptionsFlow):
         schema = vol.Schema(schema_dict)
 
         return self.async_show_form(step_id="os_entry", data_schema=schema)
-

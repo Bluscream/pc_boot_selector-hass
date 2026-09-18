@@ -11,6 +11,7 @@ from .manager import PCBootManager
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -36,7 +37,7 @@ class PCBootSelectorTimeoutNumber(NumberEntity):
         """Initialize the number entity."""
         self._manager = manager
         self._attr_unique_id = f"{entry.entry_id}_timeout"
-        
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=manager.name,
